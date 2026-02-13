@@ -1,0 +1,6 @@
+# MC_in_terminal Requirements
+# All dependencies are Python standard library modules
+# No additional packages required
+
+# For Windows users, you may need to install windows-curses:
+# pip install windows-curses
