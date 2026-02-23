@@ -4,7 +4,6 @@ Terminal control module.
 Handles terminal initialization and restoration using curses.
 """
 
-import sys
 import curses
 from typing import Optional
 

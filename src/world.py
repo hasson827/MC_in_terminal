@@ -4,7 +4,7 @@ World data module.
 Manages the 3D block grid and world generation.
 """
 
-from typing import List, Optional
+from typing import List
 from .config import X_BLOCKS, Y_BLOCKS, Z_BLOCKS, EMPTY_BLOCK, GROUND_BLOCK
 from .vector import Vector
 

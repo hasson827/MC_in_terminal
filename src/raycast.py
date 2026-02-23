@@ -4,7 +4,6 @@ Raycasting module.
 Handles ray-world intersection for rendering.
 """
 
-import math
 from typing import List, Optional, Tuple
 from .config import (
     X_BLOCKS,

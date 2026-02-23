@@ -13,20 +13,15 @@ import atexit
 sys.path.insert(0, ".")
 
 from src.config import (
-    X_PIXELS,
-    Y_PIXELS,
     FRAME_DELAY_MS,
     GROUND_BLOCK,
     HIGHLIGHT_BLOCK,
-    EMPTY_BLOCK,
 )
 from src.terminal import Terminal
 from src.world import World
 from src.player import Player
-from src.raycast import Raycaster
 from src.input_handler import InputHandler
 from src.renderer import Renderer
-from src.vector import Vector
 
 
 class Game:
