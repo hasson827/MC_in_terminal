@@ -1,7 +1,7 @@
 """
-World data module.
+世界数据模块。
 
-Manages the 3D block grid and world generation.
+管理3D方块网格和世界生成。
 """
 
 from typing import List
@@ -11,17 +11,17 @@ from .vector import Vector
 
 class World:
     """
-    3D block world containing all blocks.
+    3D方块世界。
 
-    Coordinate system:
-    - x: left/right (0 to X_BLOCKS-1)
-    - y: forward/backward (0 to Y_BLOCKS-1)
-    - z: up/down (0 to Z_BLOCKS-1)
+    坐标系：
+    - x: 左右 (0 到 X_BLOCKS-1)
+    - y: 前后 (0 到 Y_BLOCKS-1)
+    - z: 上下 (0 到 Z_BLOCKS-1)
     """
 
     def __init__(self):
-        """Initialize empty world."""
-        # Create 3D array: blocks[z][y][x]
+        """初始化空世界。"""
+        # 3D数组：blocks[z][y][x]
         self.blocks: List[List[List[str]]] = [
             [[EMPTY_BLOCK for _ in range(X_BLOCKS)] for _ in range(Y_BLOCKS)]
             for _ in range(Z_BLOCKS)
@@ -29,10 +29,10 @@ class World:
 
     def generate_ground(self, ground_height: int = 4):
         """
-        Generate ground layer.
+        生成地面层。
 
-        Args:
-            ground_height: Number of bottom layers to fill with ground blocks
+        参数：
+            ground_height: 底部填充的层数
         """
         for x in range(X_BLOCKS):
             for y in range(Y_BLOCKS):
@@ -41,13 +41,13 @@ class World:
 
     def get_block(self, x: int, y: int, z: int) -> str:
         """
-        Get block at position.
+        获取指定位置的方块。
 
-        Args:
-            x, y, z: Block coordinates
+        参数：
+            x, y, z: 方块坐标
 
-        Returns:
-            Block character, or EMPTY_BLOCK if out of bounds
+        返回：
+            方块字符，越界返回 EMPTY_BLOCK
         """
         if not self.is_valid_position(x, y, z):
             return EMPTY_BLOCK
@@ -55,80 +55,71 @@ class World:
 
     def set_block(self, x: int, y: int, z: int, block: str):
         """
-        Set block at position.
+        设置指定位置的方块。
 
-        Args:
-            x, y, z: Block coordinates
-            block: Block character to place
+        参数：
+            x, y, z: 方块坐标
+            block: 方块字符
         """
         if self.is_valid_position(x, y, z):
             self.blocks[z][y][x] = block
 
     def is_valid_position(self, x: int, y: int, z: int) -> bool:
         """
-        Check if position is within world bounds.
+        检查位置是否在世界边界内。
 
-        Args:
-            x, y, z: Coordinates to check
+        参数：
+            x, y, z: 坐标
 
-        Returns:
-            True if position is valid
+        返回：
+            位置有效返回 True
         """
         return 0 <= x < X_BLOCKS and 0 <= y < Y_BLOCKS and 0 <= z < Z_BLOCKS
 
     def is_empty(self, x: int, y: int, z: int) -> bool:
         """
-        Check if block position is empty.
+        检查位置是否为空。
 
-        Args:
-            x, y, z: Block coordinates
+        参数：
+            x, y, z: 方块坐标
 
-        Returns:
-            True if block is empty or out of bounds
+        返回：
+            方块为空或越界返回 True
         """
         return self.get_block(x, y, z) == EMPTY_BLOCK
 
     def place_block(self, pos: Vector, block: str) -> bool:
         """
-        Place a block adjacent to the given position.
+        在给定位置相邻处放置方块。
 
-        Finds the closest face and places block adjacent to it.
+        找到最近的面并在其旁边放置方块。
 
-        Args:
-            pos: Position (ray hit point)
-            block: Block character to place
+        参数：
+            pos: 射线击中点位置
+            block: 方块字符
 
-        Returns:
-            True if block was placed successfully
+        返回：
+            放置成功返回 True
         """
         x, y, z = int(pos.x), int(pos.y), int(pos.z)
 
-        # Calculate distances to each face
+        # 6个面的偏移方向：+x, -x, +y, -y, +z, -z
+        offsets = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)]
+
+        # 6个面到击中点的距离
         dists = [
-            abs(x + 1 - pos.x),  # Right face (+x)
-            abs(pos.x - x),  # Left face (-x)
-            abs(y + 1 - pos.y),  # Back face (+y)
-            abs(pos.y - y),  # Front face (-y)
-            abs(z + 1 - pos.z),  # Top face (+z)
-            abs(pos.z - z),  # Bottom face (-z)
+            abs(x + 1 - pos.x),  # +x 面
+            abs(pos.x - x),  # -x 面
+            abs(y + 1 - pos.y),  # +y 面
+            abs(pos.y - y),  # -y 面
+            abs(z + 1 - pos.z),  # +z 面
+            abs(pos.z - z),  # -z 面
         ]
 
-        # Find closest face
-        min_idx = 0
-        min_dist = dists[0]
-        for i in range(1, 6):
-            if dists[i] < min_dist:
-                min_dist = dists[i]
-                min_idx = i
-
-        # Place block on appropriate side
-        dx = [1, -1, 0, 0, 0, 0]
-        dy = [0, 0, 1, -1, 0, 0]
-        dz = [0, 0, 0, 0, 1, -1]
-
-        new_x = x + dx[min_idx]
-        new_y = y + dy[min_idx]
-        new_z = z + dz[min_idx]
+        # 找最近的面
+        min_idx = min(range(6), key=lambda i: dists[i])
+        dx, dy, dz = offsets[min_idx]
+        new_x, new_y, new_z = x + dx, y + dy, z + dz
 
         if self.is_valid_position(new_x, new_y, new_z):
             self.blocks[new_z][new_y][new_x] = block
@@ -137,31 +128,15 @@ class World:
 
     def remove_block(self, x: int, y: int, z: int) -> bool:
         """
-        Remove block at position.
+        移除指定位置的方块。
 
-        Args:
-            x, y, z: Block coordinates
+        参数：
+            x, y, z: 方块坐标
 
-        Returns:
-            True if block was removed
+        返回：
+            移除成功返回 True
         """
         if self.is_valid_position(x, y, z) and not self.is_empty(x, y, z):
             self.blocks[z][y][x] = EMPTY_BLOCK
             return True
         return False
-
-    def get_blocks_ref(self) -> List[List[List[str]]]:
-        """Get reference to the blocks array."""
-        return self.blocks
-
-
-def init_blocks() -> World:
-    """
-    Initialize world with ground.
-
-    Returns:
-        Initialized World instance
-    """
-    world = World()
-    world.generate_ground(4)  # Fill bottom 4 layers
-    return world

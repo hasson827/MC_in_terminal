@@ -1,106 +1,87 @@
 """
-3D Vector mathematics module.
+3D向量数学模块。
 
-Provides Vector and Vector2 classes for 3D calculations.
+提供 Vector 和 Vector2 类用于3D计算。
 """
 
 import math
-from typing import Tuple
 from dataclasses import dataclass
 
 
 @dataclass
 class Vector:
-    """3D Vector with x, y, z components."""
+    """3D向量，包含 x, y, z 分量。"""
 
     x: float = 0.0
     y: float = 0.0
     z: float = 0.0
 
     def __add__(self, other: "Vector") -> "Vector":
-        """Add two vectors."""
+        """向量加法。"""
         return Vector(self.x + other.x, self.y + other.y, self.z + other.z)
 
     def __sub__(self, other: "Vector") -> "Vector":
-        """Subtract two vectors."""
+        """向量减法。"""
         return Vector(self.x - other.x, self.y - other.y, self.z - other.z)
 
     def __mul__(self, scalar: float) -> "Vector":
-        """Multiply vector by scalar."""
+        """向量乘以标量。"""
         return Vector(self.x * scalar, self.y * scalar, self.z * scalar)
 
     def __rmul__(self, scalar: float) -> "Vector":
-        """Right multiply vector by scalar."""
+        """标量乘以向量（右乘）。"""
         return self.__mul__(scalar)
 
-    def __neg__(self) -> "Vector":
-        """Negate vector."""
-        return Vector(-self.x, -self.y, -self.z)
+    def iadd_scaled(self, other: "Vector", scalar: float) -> None:
+        """
+        原位操作：self += other * scalar
+        避免创建临时Vector对象，用于性能优化。
+        """
+        self.x += other.x * scalar
+        self.y += other.y * scalar
+        self.z += other.z * scalar
 
     def length(self) -> float:
-        """Calculate vector length."""
+        """计算向量长度。"""
         return math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
 
     def normalize(self) -> "Vector":
-        """Return normalized vector (unit length)."""
+        """返回归一化向量（单位长度）。"""
         length = self.length()
-        if length == 0:
+        if length < 1e-10:
             return Vector(0, 0, 0)
         return Vector(self.x / length, self.y / length, self.z / length)
 
     def copy(self) -> "Vector":
-        """Create a copy of this vector."""
+        """创建此向量的副本。"""
         return Vector(self.x, self.y, self.z)
-
-    def to_tuple(self) -> Tuple[int, int, int]:
-        """Convert to integer tuple (for indexing)."""
-        return (int(self.x), int(self.y), int(self.z))
 
 
 @dataclass
 class Vector2:
-    """2D Vector for view angles (psi = vertical, phi = horizontal)."""
+    """2D向量，用于视角（psi=俯仰角, phi=偏航角）。"""
 
-    psi: float = 0.0  # Vertical angle (pitch)
-    phi: float = 0.0  # Horizontal angle (yaw)
+    psi: float = 0.0  # 垂直角度（俯仰）
+    phi: float = 0.0  # 水平角度（偏航）
 
     def copy(self) -> "Vector2":
-        """Create a copy of this vector."""
+        """创建此向量的副本。"""
         return Vector2(self.psi, self.phi)
 
 
 def angles_to_vect(angles: Vector2) -> Vector:
     """
-    Convert view angles to a direction vector.
+    将视角角度转换为方向向量。
 
-    Args:
-        angles: Vector2 containing psi (pitch) and phi (yaw)
+    参数：
+        angles: 包含 psi（俯仰角）和 phi（偏航角）的 Vector2
 
-    Returns:
-        Vector pointing in the direction of the angles
+    返回：
+        指向该角度方向的 Vector
     """
+    cos_psi = math.cos(angles.psi)
     return Vector(
-        x=math.cos(angles.psi) * math.cos(angles.phi),
-        y=math.cos(angles.psi) * math.sin(angles.phi),
+        x=cos_psi * math.cos(angles.phi),
+        y=cos_psi * math.sin(angles.phi),
         z=math.sin(angles.psi),
     )
-
-
-def vect_add(v1: Vector, v2: Vector) -> Vector:
-    """Add two vectors."""
-    return v1 + v2
-
-
-def vect_sub(v1: Vector, v2: Vector) -> Vector:
-    """Subtract v2 from v1."""
-    return v1 - v2
-
-
-def vect_scale(scalar: float, v: Vector) -> Vector:
-    """Scale a vector by a scalar."""
-    return v * scalar
-
-
-def vect_normalize(v: Vector) -> Vector:
-    """Normalize a vector to unit length."""
-    return v.normalize()

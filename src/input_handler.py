@@ -1,7 +1,7 @@
 """
-Input handling module.
+输入处理模块。
 
-Processes keyboard input for game controls.
+处理游戏控制的键盘输入。
 """
 
 import curses
@@ -10,15 +10,15 @@ from typing import Set
 
 class InputHandler:
     """
-    Handles keyboard input processing.
+    键盘输入处理器。
     """
 
     def __init__(self, stdscr: curses.window):
         """
-        Initialize input handler.
+        初始化输入处理器。
 
-        Args:
-            stdscr: curses window for input
+        参数：
+            stdscr: curses 窗口，用于读取输入
         """
         self.stdscr = stdscr
         self.keystate: Set[int] = set()
@@ -26,21 +26,21 @@ class InputHandler:
 
     def process_input(self):
         """
-        Process all pending keyboard input.
+        处理所有待处理的键盘输入。
 
-        Clears previous state and reads all current keypresses.
+        清除之前的状态并读取当前所有按键。
         """
-        # Clear previous key state
+        # 清除之前的按键状态
         self.keystate.clear()
 
-        # Read all pending input
+        # 读取所有待处理输入
         while True:
             try:
                 key = self.stdscr.getch()
                 if key == -1:
-                    break  # No more input
+                    break  # 无更多输入
 
-                # Handle q key for quit
+                # 处理 q 键退出
                 if key == ord("q") or key == ord("Q"):
                     self._should_quit = True
 
@@ -51,38 +51,38 @@ class InputHandler:
 
     def is_key_pressed(self, key: str) -> bool:
         """
-        Check if a key is currently pressed.
+        检查按键是否被按下。
 
-        Args:
-            key: Single character key to check
+        参数：
+            key: 单字符按键
 
-        Returns:
-            True if key is pressed, False otherwise
+        返回：
+            如果按键被按下返回 True
         """
         return ord(key) in self.keystate
 
     def is_keycode_pressed(self, keycode: int) -> bool:
         """
-        Check if a keycode is currently pressed.
+        检查键码是否被按下。
 
-        Args:
-            keycode: Key code to check
+        参数：
+            keycode: 键码
 
-        Returns:
-            True if keycode is pressed, False otherwise
+        返回：
+            如果键码被按下返回 True
         """
         return keycode in self.keystate
 
     def should_quit(self) -> bool:
-        """Check if quit was requested."""
+        """检查是否请求退出。"""
         return self._should_quit
 
     def reset_quit(self):
-        """Reset quit flag."""
+        """重置退出标志。"""
         self._should_quit = False
 
 
-# Key constants for convenience
+# 按键常量
 KEY_QUIT = ord("q")
 KEY_LOOK_UP = ord("w")
 KEY_LOOK_DOWN = ord("s")
@@ -93,4 +93,4 @@ KEY_MOVE_BACKWARD = ord("k")
 KEY_STRAFE_LEFT = ord("j")
 KEY_STRAFE_RIGHT = ord("l")
 KEY_REMOVE_BLOCK = ord("x")
-KEY_PLACE_BLOCK = ord(" ")  # Space bar
+KEY_PLACE_BLOCK = ord(" ")  # 空格键

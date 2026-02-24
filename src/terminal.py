@@ -1,7 +1,7 @@
 """
-Terminal control module.
+终端控制模块。
 
-Handles terminal initialization and restoration using curses.
+使用 curses 处理终端初始化和恢复。
 """
 
 import curses
@@ -10,34 +10,34 @@ from typing import Optional
 
 class Terminal:
     """
-    Terminal controller using curses for non-blocking input.
+    终端控制器，使用 curses 实现非阻塞输入。
     """
 
     def __init__(self):
-        """Initialize terminal controller."""
+        """初始化终端控制器。"""
         self.stdscr: Optional[curses.window] = None
         self.initialized = False
 
     def init_terminal(self) -> curses.window:
         """
-        Initialize terminal for non-blocking input.
+        初始化终端为非阻塞输入模式。
 
-        Returns:
-            curses window object
+        返回：
+            curses 窗口对象
         """
         self.stdscr = curses.initscr()
 
-        # Disable line buffering
+        # 禁用行缓冲
         curses.noecho()
         curses.cbreak()
 
-        # Don't require Enter key
+        # 不需要按回车键
         self.stdscr.nodelay(True)
 
-        # Hide cursor
+        # 隐藏光标
         curses.curs_set(0)
 
-        # Enable keypad for special keys
+        # 启用键盘特殊键
         self.stdscr.keypad(True)
 
         self.initialized = True
@@ -45,41 +45,41 @@ class Terminal:
         return self.stdscr
 
     def restore_terminal(self):
-        """Restore terminal to original state."""
+        """恢复终端到原始状态。"""
         if self.initialized and self.stdscr:
-            # Show cursor again
+            # 显示光标
             curses.curs_set(1)
 
-            # Restore terminal settings
+            # 恢复终端设置
             curses.nocbreak()
             self.stdscr.keypad(False)
             curses.echo()
             curses.endwin()
 
             self.initialized = False
-            print("Terminal restored")
+            print("终端已恢复")
 
     def get_stdscr(self) -> Optional[curses.window]:
-        """Get the curses window."""
+        """获取 curses 窗口。"""
         return self.stdscr
 
     def clear_screen(self):
-        """Clear the terminal screen."""
+        """清空终端屏幕。"""
         if self.stdscr:
             self.stdscr.clear()
 
     def refresh(self):
-        """Refresh the terminal display."""
+        """刷新终端显示。"""
         if self.stdscr:
             self.stdscr.refresh()
 
 
-# Global terminal instance for convenience
+# 全局终端实例
 _terminal_instance: Optional[Terminal] = None
 
 
 def get_terminal() -> Terminal:
-    """Get or create the global terminal instance."""
+    """获取或创建全局终端实例。"""
     global _terminal_instance
     if _terminal_instance is None:
         _terminal_instance = Terminal()
@@ -87,12 +87,12 @@ def get_terminal() -> Terminal:
 
 
 def init_terminal() -> curses.window:
-    """Initialize terminal and return curses window."""
+    """初始化终端并返回 curses 窗口。"""
     term = get_terminal()
     return term.init_terminal()
 
 
 def restore_terminal():
-    """Restore terminal to original state."""
+    """恢复终端到原始状态。"""
     term = get_terminal()
     term.restore_terminal()

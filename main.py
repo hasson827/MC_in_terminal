@@ -1,171 +1,124 @@
-#!/usr/bin/env python3
 """
-MC_in_terminal - Terminal-based 3D Minecraft
+Minecraft 终端版 - 主程序入口。
 
-A Python rewrite of the classic terminal Minecraft game.
+基于 ASCII 光线追踪的终端 3D Minecraft 游戏。
 """
 
-import sys
 import time
-import atexit
-
-# Add src directory to path
-sys.path.insert(0, ".")
-
-from src.config import (
-    FRAME_DELAY_MS,
-    GROUND_BLOCK,
-    HIGHLIGHT_BLOCK,
-)
-from src.terminal import Terminal
+import sys
+from src.config import FRAME_DELAY_MS
 from src.world import World
 from src.player import Player
-from src.input_handler import InputHandler
+from src.raycast import Raycaster
 from src.renderer import Renderer
+from src.input_handler import InputHandler
+from src.terminal import init_terminal, restore_terminal
 
 
 class Game:
     """
-    Main game class that orchestrates all components.
+    游戏主类，协调所有子系统。
     """
 
     def __init__(self):
-        """Initialize game components."""
-        self.terminal = Terminal()
-        self.world = None
-        self.player = None
-        self.renderer = None
-        self.input_handler = None
-        self.raycaster = None
-        self.running = False
-
-        # State for block interaction
-        self.current_block = None
-        self.current_block_char = None
-
-    def init(self):
-        """Initialize all game systems."""
-        # Initialize terminal
-        stdscr = self.terminal.init_terminal()
-
-        # Register cleanup
-        atexit.register(self.cleanup)
-
-        # Initialize world
+        """初始化游戏组件。"""
         self.world = World()
-        self.world.generate_ground(4)
-
-        # Initialize player
-        self.player = Player(x=5.0, y=5.0)
-
-        # Initialize renderer
-        self.renderer = Renderer(stdscr)
-        self.raycaster = self.renderer.get_raycaster()
-
-        # Initialize input handler
-        self.input_handler = InputHandler(stdscr)
-
+        self.player = Player(x=10.0, y=10.0)
+        self.raycaster = Raycaster()
+        self.renderer = Renderer(self.raycaster, self.world)
+        self.input_handler = None
+        self.stdscr = None
         self.running = True
-        print("Game initialized. Press 'q' to quit.", file=sys.stderr)
+
+    def setup(self):
+        """设置游戏环境。终端初始化和世界生成。"""
+        # 初始化终端
+        self.stdscr = init_terminal()
+        self.input_handler = InputHandler(self.stdscr)
+
+        # 生成地面
+        self.world.generate_ground(ground_height=4)
+
+        print("游戏初始化完成！按 q 退出")
 
     def cleanup(self):
-        """Clean up resources."""
-        self.terminal.restore_terminal()
-
-    def process_input(self):
-        """Process all input."""
-        self.input_handler.process_input()
-
-        if self.input_handler.should_quit():
-            self.running = False
-
-    def update(self):
-        """Update game state."""
-        # Update player (movement, physics)
-        self.player.update(self.world, self.input_handler)
-
-        # Get block player is looking at
-        pos = self.player.get_pos()
-        direction = self.player.get_direction()
-        blocks = self.world.get_blocks_ref()
-
-        block_pos = self.raycaster.get_current_block_pos(pos, direction, blocks)
-
-        if block_pos is not None:
-            x, y, z = int(block_pos.x), int(block_pos.y), int(block_pos.z)
-            self.current_block = (x, y, z)
-            self.current_block_char = self.world.get_block(x, y, z)
-
-            # Handle block removal
-            if self.input_handler.is_key_pressed("x"):
-                self.world.remove_block(x, y, z)
-                self.current_block_char = None  # Block was removed
-                self.current_block = None
-
-            # Handle block placement
-            elif self.input_handler.is_key_pressed(" "):
-                self.world.place_block(block_pos, GROUND_BLOCK)
-        else:
-            self.current_block = None
-            self.current_block_char = None
-
-    def render(self):
-        """Render the current frame."""
-        pos = self.player.get_pos()
-        view = self.player.get_view()
-        blocks = self.world.get_blocks_ref()
-
-        # Highlight current block if looking at one
-        if self.current_block is not None and self.current_block_char is not None:
-            x, y, z = self.current_block
-            blocks[z][y][x] = HIGHLIGHT_BLOCK
-
-        # Generate and draw picture
-        self.renderer.get_picture(pos, view, blocks)
-        self.renderer.draw_ascii()
-
-        # Restore original block character
-        if self.current_block is not None and self.current_block_char is not None:
-            x, y, z = self.current_block
-            blocks[z][y][x] = self.current_block_char
+        """清理游戏资源，恢复终端。"""
+        restore_terminal()
 
     def run(self):
-        """Main game loop."""
-        self.init()
+        """主游戏循环。"""
+        self.setup()
 
-        frame_time = FRAME_DELAY_MS / 1000.0  # Convert to seconds
+        try:
+            while self.running:
+                frame_start = time.time()
 
-        while self.running:
-            frame_start = time.time()
+                # 处理输入
+                self.input_handler.process_input()
 
-            self.process_input()
+                # 检查退出
+                if self.input_handler.should_quit():
+                    self.running = False
+                    break
 
-            if not self.running:
-                break
+                # 更新游戏状态
+                self.player.update(self.world, self.input_handler)
 
-            self.update()
-            self.render()
+                # 处理方块交互
+                player_pos = self.player.get_pos()
+                player_dir = self.player.get_direction()
+                blocks = self.world.blocks
 
-            # Maintain frame rate
-            elapsed = time.time() - frame_start
-            sleep_time = frame_time - elapsed
-            if sleep_time > 0:
-                time.sleep(sleep_time)
+                target = self.raycaster.get_current_block_pos(
+                    player_pos, player_dir, blocks
+                )
 
-        self.cleanup()
-        print("Thanks for playing!")
+                if target:
+                    bx, by, bz = int(target.x), int(target.y), int(target.z)
+                    if self.input_handler.is_key_pressed("x"):
+                        self.world.remove_block(bx, by, bz)
+                    if self.input_handler.is_key_pressed(" "):
+                        self.world.place_block(target, "@")
+
+                # 渲染
+                picture = self.renderer.get_picture(
+                    player_pos, self.player.get_view(), player_dir
+                )
+                self.renderer.draw_ascii(picture, self.stdscr)
+
+                # 帧率控制
+                frame_time = (time.time() - frame_start) * 1000
+                delay = max(0, FRAME_DELAY_MS - frame_time) / 1000
+                time.sleep(delay)
+
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.cleanup()
+
+    def print_controls(self):
+        """打印控制说明。"""
+        print("\n=== Minecraft 终端版 ===")
+        print("控制:")
+        print("  w/s/a/d - 视角旋转")
+        print("  i/k/j/l - 移动 (前/后/左/右)")
+        print("  x       - 移除方块")
+        print("  空格    - 放置方块")
+        print("  q       - 退出")
+        print("========================\n")
 
 
 def main():
-    """Entry point."""
+    """程序入口。"""
+    game = Game()
+    game.print_controls()
+
     try:
-        game = Game()
         game.run()
-    except KeyboardInterrupt:
-        print("\nGame interrupted.")
     except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        raise
+        print(f"\n游戏错误: {e}")
+        restore_terminal()
+        sys.exit(1)
 
 
 if __name__ == "__main__":
